@@ -1,0 +1,40 @@
+.program i2s_pio
+.side_set 2
+
+    set x, 30       side 0b11
+L1: 
+    out pins, 1     side 0b01
+    jmp x--, L1     side 0b11
+    out pins, 1     side 0b00
+    set x, 30       side 0b10
+L2: 
+    out pins, 1     side 0b00
+    jmp x--, L2     side 0b10
+    out pins, 1     side 0b01
+
+
+% c-sdk {
+static inline void i2s_pio_program_init(PIO pio, uint sm,
+                                    uint offset, float div,
+                                    uint data_pin, uint clock_pin_base)
+{
+    pio_sm_config sm_config = i2s_pio_program_get_default_config(offset);
+
+    sm_config_set_out_pins(&sm_config, data_pin, 1);//out命令で出力するpin
+    sm_config_set_sideset_pins(&sm_config, clock_pin_base);//side命令で出力するpin
+    sm_config_set_out_shift(&sm_config, false, true, 32);
+    sm_config_set_set_pins(&sm_config, data_pin, 1);
+    sm_config_set_clkdiv(&sm_config, div);
+    pio_sm_init(pio, sm, offset, &sm_config);
+
+    uint pin_mask = (1u << data_pin) | (3u << clock_pin_base);
+
+    pio_sm_set_pindirs_with_mask(pio, sm, pin_mask, pin_mask);
+    pio_sm_set_pins(pio, sm, 1); // clear pins
+    pio_sm_clear_fifos(pio, sm);
+    pio_sm_drain_tx_fifo(pio, sm);
+    
+    pio_sm_exec(pio, sm, pio_encode_jmp(offset));
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
