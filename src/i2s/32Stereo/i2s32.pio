@@ -1,6 +1,5 @@
-.program i2s_pio
+.program i2s32
 .side_set 2
-
     set x, 30       side 0b11
 L1: 
     out pins, 1     side 0b01
@@ -14,11 +13,11 @@ L2:
 
 
 % c-sdk {
-static inline void i2s_pio_program_init(PIO pio, uint sm,
+static inline void i2s32_program_init(PIO pio, uint sm,
                                     uint offset, float div,
                                     uint data_pin, uint clock_pin_base)
 {
-    pio_sm_config sm_config = i2s_pio_program_get_default_config(offset);
+    pio_sm_config sm_config = i2s32_program_get_default_config(offset);
 
     sm_config_set_out_pins(&sm_config, data_pin, 1);//out命令で出力するpin
     sm_config_set_sideset_pins(&sm_config, clock_pin_base);//side命令で出力するpin

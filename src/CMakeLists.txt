@@ -1,22 +1,8 @@
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
-if(WIN32)
-    set(USERHOME $ENV{USERPROFILE})
-else()
-    set(USERHOME $ENV{HOME})
-endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
-set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
-    include(${picoVscode})
-endif()
-# ====================================================================================
-cmake_minimum_required(VERSION 3.5)
-
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+cmake_minimum_required(VERSION 3.20)
 
 set(PICO_SDK_PATH /home/arajun/dev/pico-sdk)
+
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Pull in Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -26,12 +12,11 @@ project(picoMusicPlayer C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(../../src build)
+add_subdirectory(i2s/32Stereo build)
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(picoMusicPlayer 
+add_executable(picoMusicPlayer
     main.c
-    hw_config.c
 )
 # Can leave these off for silent mode:
 # add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
@@ -40,16 +25,10 @@ add_executable(picoMusicPlayer
 # Add the standard library and FatFS/SPI to the build
 target_link_libraries(picoMusicPlayer 
     pico_stdlib
-    hardware_spi
-    hardware_i2c
-    hardware_dma
     hardware_pio
-    hardware_interp
     hardware_timer
-    hardware_watchdog
     hardware_clocks
-    hardware_adc
-    no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
+    picoI2S32
 )
 
 pico_set_program_name(picoMusicPlayer "picoMusicPlayer")
