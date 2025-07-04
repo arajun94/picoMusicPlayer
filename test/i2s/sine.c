@@ -10,14 +10,9 @@
 #include "pico/stdlib.h"
 
 #include "i2s.h"
+#include "i2s_config.h"
 
 #define CPU_FREQ 200000000
-
-#define DATA_PIN 20
-#define CLOCK_PIN_BASE 18
-
-#define DAC_SAMPLING_RATE 44100
-#define DAC_BIT_DEPTH 16
 
 #define TABLE_BIT_DEPTH 16
 
@@ -44,7 +39,7 @@ int main()
 	for (i = 0; i < 1 << TABLE_BIT_DEPTH; i++)
 		sine_wave_table[i] = sin(2 * i * M_PI / (1 << TABLE_BIT_DEPTH)) * 32767;
 
-    int16_t value;
+    int32_t value;
 	uint16_t t=0;
 	while (1) {
 		value = sine_wave_table[t]/2;

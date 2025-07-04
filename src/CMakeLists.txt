@@ -4,6 +4,8 @@ set(PICO_SDK_PATH /home/arajun/dev/pico-sdk)
 
 set(PICO_BOARD pico2 CACHE STRING "Board type")
 
+set(OPTIMIZATION_FLAG "-O3")
+
 # Pull in Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
@@ -12,12 +14,13 @@ project(picoMusicPlayer C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(i2s build)
-add_subdirectory(../lib/fatfs build)
+add_subdirectory(i2s)
+add_subdirectory(../lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(picoMusicPlayer
     main.c
+    hw_config.c
 )
 # Can leave these off for silent mode:
 # add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
@@ -27,6 +30,7 @@ add_executable(picoMusicPlayer
 target_link_libraries(picoMusicPlayer 
     pico_stdlib
     hardware_pio
+    hardware_gpio
     hardware_timer
     hardware_clocks
     i2s

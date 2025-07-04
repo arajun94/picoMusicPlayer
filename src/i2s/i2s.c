@@ -30,3 +30,9 @@ void i2s_write(int32_t value) {
     const uint sm = 0;
     pio_sm_put_blocking(pio, sm, value);
 }
+
+uint8_t i2s_ready() {
+    const PIO pio = pio0;
+    const uint sm = 0;
+    return !pio_sm_is_tx_fifo_full(pio, sm);
+}

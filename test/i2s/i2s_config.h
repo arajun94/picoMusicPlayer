@@ -7,8 +7,8 @@
 
 #define DATA_PIN 20              //DIN
 #define CLOCK_PIN_BASE 18        //LRCLK、BCLK
-#define DAC_SAMPLING_RATE 44100
-#define DAC_BITS 16              //16 or 32
-#define STEREO 0                 //0 or 1
+#define DAC_SAMPLING_RATE 48000
+#define DAC_BITS 32              //16 or 32
+#define STEREO 1                 //0 or 1
 
 #endif
