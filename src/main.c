@@ -14,6 +14,7 @@
 
 #include "hw_config.h"
 #include "f_util.h"
+#include "file_stream.h"
 #include "ff.h"
 
 #define CPU_FREQ 200000000
@@ -55,48 +56,40 @@ int main()
         panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
     }
 
-    // ファイルオープン
-    FIL wav;
-	fr = f_open(&wav, "sound.wav", FA_READ);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        panic("f_open(sound.wav) error: %s (%d)\n", FRESULT_str(fr), fr);
+	FILE *wav = open_file_stream("sound.wav", "r");
+	if (!wav) {
+		panic("Failed to open file: %s\n", "sound.wav");
 	}
-	FIL log;
-	fr = f_open(&log, "log.txt", FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        panic("f_open(log.txt) error: %s (%d)\n", FRESULT_str(fr), fr);
-	}
+	static char vbuf[2048] __attribute__((aligned));
+    int err = setvbuf(wav, vbuf, _IOFBF, sizeof vbuf);
+
 
 	//読み出し
-	uint8_t buffer[256];
+	uint32_t buffer[256];
 	int16_t* play_buffer;
-	play_buffer = (int16_t*)calloc(1<<16, sizeof(int16_t));
-	uint br;
+	play_buffer = (int16_t*)calloc(1<<17, sizeof(int16_t));
 	uint32_t i,j;
-	fr = f_read(&wav, buffer, 12, &br);
-	printf("f_read: %s\n", FRESULT_str(fr));
-	printf("%d bytes are readed.\n", br);
-	
+
 	riff = (Riff*)malloc(sizeof(Riff));
-	riff = (Riff*)buffer;
+	fread(riff, 12, 1, wav);
 	printf("size:%d\n", riff->size);
 	printf("\n");
 
 	for(;;){
-		fr = f_read(&wav, buffer, 8, &br);
+		fread(buffer, 4, 2, wav);
 		if(FR_OK != fr) {
 			panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 		}
 		if(memcmp(buffer, "fmt ", 4)!=0){
-			f_read(&wav, buffer, *(uint32_t*)(buffer+4) , &br);
+			fread(buffer, buffer[1], 1, wav);
 			if(FR_OK != fr) {
 				panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 			}
 		}else{
-			WaveFormat* waveformat;
-			waveformat = (WaveFormat*)malloc(sizeof(WaveFormat));
-			if(*(uint32_t*)(buffer+4) >= 16){
-				f_read(&wav, waveformat, 16, &br);
+			if(buffer[1] >= 16){
+				WaveFormat* waveformat;
+				waveformat = (WaveFormat*)malloc(sizeof(WaveFormat));
+				fread(waveformat, 16, 1, wav);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
@@ -120,28 +113,17 @@ int main()
 	}
 
 
-	
+
 	for(;;){
-		fr = f_read(&wav, buffer, 8, &br);
-		if(FR_OK != fr) {
-			panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
-		}
+		fread(buffer, 4, 2, wav);
 		if(memcmp(buffer, "data", 4)!=0){
-			f_read(&wav, buffer, *(uint32_t*)(buffer+4) , &br);
-			if(FR_OK != fr) {
-				panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
-			}
+			fread(buffer, buffer[1], 1, wav);
 		}else{
-			//for(j=0; j<100; j++){
 			while(1){
-				fr = f_read(&wav, play_buffer, 1<<15, &br);
-				if(FR_OK != fr) {
-					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
-				}
-				if(br == 0) break; // EOF
-				for(i=0; i<br/2; i++){
+				fread(play_buffer, 2, 1<<16, wav);
+
+				for(i=0; i<1<<16; i++){
 					i2s_write(play_buffer[i]<<16);
-					//f_printf(&log, "%d\n", play_buffer[i]);
 				}
 			}
 			break;
@@ -151,14 +133,7 @@ int main()
 	free(play_buffer);
 
     // Close the file
-	fr = f_close(&wav);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-    }
-	fr = f_close(&log);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-    }
+	fr = fclose(wav);
 
     // Unmount the SD card
     f_unmount("");
