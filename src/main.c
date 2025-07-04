@@ -34,6 +34,25 @@ typedef struct {
 	uint16_t wBitsPerSample;      // ビット深度 (例: 16)
 } WaveFormat;
 
+
+UINT out_stream (   /* 戻り値: 転送されたバイト数またはストリームの状態 */
+    const BYTE *p,  /* 転送するデータを指すポインタ */
+    UINT btf        /* >0: 転送を行う(バイト数). 0: ストリームの状態を調べる */
+)
+{
+	uint32_t cnt = 0;
+	if(btf == 0) {
+		return i2s_ready();
+	}
+	do {
+		i2s_write(*(int16_t*)(p+2*cnt) << 16);
+		cnt+=2;
+	}while(i2s_ready() && cnt < btf);
+    return cnt;
+}
+
+
+
 int main()
 {
 	stdio_init_all();
@@ -134,14 +153,14 @@ int main()
 		}else{
 			//for(j=0; j<100; j++){
 			while(1){
-				fr = f_read(&wav, play_buffer, 1<<16, &br);
+				fr = f_forward(&wav, out_stream, 1<<16, &br);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
-				if(br == 0) break; // EOF
+				/*if(br == 0) break; // EOF
 				for(i=0; i<br/2; i++){
 					i2s_write(play_buffer[i]<<16);
-				}
+				}*/
 			}
 			break;
 		}

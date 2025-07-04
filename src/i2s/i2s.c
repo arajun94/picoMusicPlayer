@@ -25,10 +25,19 @@ void i2s_init() {
     i2s_program_init(pio, sm, offset, div, DATA_PIN, CLOCK_PIN_BASE);
 }
 
-void i2s_write(int32_t value) {
+void i2s_write_blocking(int32_t value) {
     const PIO pio = pio0;
     const uint sm = 0;
     pio_sm_put_blocking(pio, sm, value);
+}
+
+void i2s_write(int32_t value) {
+    const PIO pio = pio0;
+    const uint sm = 0;
+    if (pio_sm_is_tx_fifo_full(pio, sm)) {
+        return; // FIFO is full, cannot write
+    }
+    pio_sm_put(pio, sm, value);
 }
 
 uint8_t i2s_ready() {
