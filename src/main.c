@@ -134,14 +134,13 @@ int main()
 		}else{
 			//for(j=0; j<100; j++){
 			while(1){
-				fr = f_read(&wav, play_buffer, 1<<15, &br);
+				fr = f_read(&wav, play_buffer, 1<<16, &br);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
 				if(br == 0) break; // EOF
 				for(i=0; i<br/2; i++){
 					i2s_write(play_buffer[i]<<16);
-					//f_printf(&log, "%d\n", play_buffer[i]);
 				}
 			}
 			break;
