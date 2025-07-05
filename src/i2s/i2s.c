@@ -1,11 +1,11 @@
 #include "i2s.h"
 #include "hardware/pio.h"
 #include "hardware/gpio.h"
-#include "i2s_config.h"
+#include "config.h"
 
-#if (DAC_BITS == 16) && !STEREO
+#if (I2S_BITS == 16) && !I2S_STEREO
 #include "i2s16m.pio.h"
-#elif (DAC_BITS == 32) && STEREO
+#elif (I2S_BITS == 32) && I2S_STEREO
 #include "i2s32s.pio.h"
 #else 
 #error "Unsupported DAC configuration"
@@ -13,26 +13,19 @@
 
 void i2s_init() {
     //gpio initialize
-	gpio_set_function(DATA_PIN, GPIO_FUNC_PIO0);
-	gpio_set_function(CLOCK_PIN_BASE, GPIO_FUNC_PIO0);
-	gpio_set_function(CLOCK_PIN_BASE + 1, GPIO_FUNC_PIO0);
+	gpio_set_function(I2S_DATA_PIN, GPIO_FUNC_PIO0);
+	gpio_set_function(I2S_CLOCK_PIN_BASE, GPIO_FUNC_PIO0);
+	gpio_set_function(I2S_CLOCK_PIN_BASE + 1, GPIO_FUNC_PIO0);
 
-    //i2s initialize
-    const PIO pio = pio0;
-    const uint sm = 0;
-    uint offset = pio_add_program(pio, &i2s_program);
-    double div = CPU_FREQ / (DAC_SAMPLING_RATE * DAC_BITS * 2 * 2);
-    i2s_program_init(pio, sm, offset, div, DATA_PIN, CLOCK_PIN_BASE);
+    uint offset = pio_add_program(I2S_PIO, &i2s_program);
+    double div = CPU_FREQ / (I2S_SAMPLING_RATE * I2S_BITS * 2 * 2);
+    i2s_program_init(I2S_PIO, I2S_SM, offset, div, I2S_DATA_PIN, I2S_CLOCK_PIN_BASE);
 }
 
 void i2s_write(int32_t value) {
-    const PIO pio = pio0;
-    const uint sm = 0;
-    pio_sm_put_blocking(pio, sm, value);
+    pio_sm_put_blocking(I2S_PIO, I2S_SM, value);
 }
 
 uint8_t i2s_ready() {
-    const PIO pio = pio0;
-    const uint sm = 0;
-    return !pio_sm_is_tx_fifo_full(pio, sm);
+    return !pio_sm_is_tx_fifo_full(I2S_PIO, I2S_SM);
 }

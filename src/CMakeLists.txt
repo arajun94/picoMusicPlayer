@@ -21,6 +21,7 @@ add_subdirectory(../lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
 add_executable(picoMusicPlayer
     main.c
     hw_config.c
+    play.c
 )
 # Can leave these off for silent mode:
 # add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
