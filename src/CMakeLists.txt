@@ -33,6 +33,7 @@ target_link_libraries(picoMusicPlayer
     hardware_gpio
     hardware_timer
     hardware_clocks
+    hardware_dma
     i2s
     no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
 )

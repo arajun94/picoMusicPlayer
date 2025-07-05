@@ -3,7 +3,7 @@
 
 #include "hardware/pio.h"
 
-#define CPU_FREQ 250000000
+#define CPU_FREQ 200000000
 
 //DAC関連
 #define DATA_PIN 20              //DIN

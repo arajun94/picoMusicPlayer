@@ -16,7 +16,7 @@
 #include "f_util.h"
 #include "ff.h"
 
-#define CPU_FREQ 250000000
+#define CPU_FREQ 200000000
 
 typedef struct {
 	char riff[4];        // "RIFF"
@@ -34,25 +34,29 @@ typedef struct {
 	uint16_t wBitsPerSample;      // ビット深度 (例: 16)
 } WaveFormat;
 
+#define DMA_BUF_SIZE 2048
+static uint32_t dma_buf[DMA_BUF_SIZE];
+
+static int dma_chan;
+static PIO pio = pio0;
+static uint sm = 0;
+
 
 UINT out_stream (   /* 戻り値: 転送されたバイト数またはストリームの状態 */
     const BYTE *p,  /* 転送するデータを指すポインタ */
     UINT btf        /* >0: 転送を行う(バイト数). 0: ストリームの状態を調べる */
 )
 {
-    UINT cnt = 0;
-
     if (btf == 0) {
         return i2s_ready();
     }
 
-    while (i2s_ready() && cnt + 1 < btf) {  // cnt +1で安全にint16_t読めるか確認
-        int16_t sample = *(int16_t *)(p + cnt);  // 読み取り位置は固定
-        i2s_write((int32_t)sample << 16);       // 左詰め32bit出力
-        cnt += 2;  // 次のサンプルへ
+    UINT i;
+    for (i=0; i+1 < btf && i/2 < DMA_BUF_SIZE;i+=2) {
+		int16_t sample = *(int16_t*)(p+i);
+        dma_buf[i] = (int32_t)sample << 16;
     }
-
-    return cnt;
+    return i;
 }
 
 
@@ -142,7 +146,11 @@ int main()
 		}
 	}
 
-
+	// DMA設定
+    dma_chan = dma_claim_unused_channel(true);
+    dma_channel_config dcfg = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&dcfg, DMA_SIZE_32);
+    channel_config_set_dreq(&dcfg, DREQ_PIO0_TX0);
 	
 	for(;;){
 		fr = f_read(&wav, buffer, 8, &br);
@@ -156,10 +164,21 @@ int main()
 			}
 		}else{
 			while(1){
-				fr = f_forward(&wav, out_stream, 1<<2, &br);
+				fr = f_forward(&wav, out_stream, 1<<8, &br);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
+
+				// DMA転送開始（WAV -> PIO）
+				dma_channel_configure(
+					dma_chan, 
+					&dcfg,
+					&pio->txf[sm],
+					dma_buf,
+					br/2,
+					true
+				);
+				dma_channel_wait_for_finish_blocking(dma_chan);
 			}
 			break;
 		}
@@ -181,5 +200,4 @@ int main()
     f_unmount("");
 
     puts("Goodbye, world!");
-
 }
