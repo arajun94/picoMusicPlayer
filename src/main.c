@@ -16,7 +16,7 @@
 #include "f_util.h"
 #include "ff.h"
 
-#define CPU_FREQ 200000000
+#define CPU_FREQ 250000000
 
 typedef struct {
 	char riff[4];        // "RIFF"
@@ -40,14 +40,18 @@ UINT out_stream (   /* 戻り値: 転送されたバイト数またはストリ�
     UINT btf        /* >0: 転送を行う(バイト数). 0: ストリームの状態を調べる */
 )
 {
-	uint32_t cnt = 0;
-	if(btf == 0) {
-		return i2s_ready();
-	}
-	do {
-		i2s_write(*(int16_t*)(p+cnt) << 16);
-		cnt+=2;
-	}while(i2s_ready() && cnt < btf);
+    UINT cnt = 0;
+
+    if (btf == 0) {
+        return i2s_ready();
+    }
+
+    while (i2s_ready() && cnt + 1 < btf) {  // cnt +1で安全にint16_t読めるか確認
+        int16_t sample = *(int16_t *)(p + cnt);  // 読み取り位置は固定
+        i2s_write((int32_t)sample << 16);       // 左詰め32bit出力
+        cnt += 2;  // 次のサンプルへ
+    }
+
     return cnt;
 }
 
@@ -152,7 +156,7 @@ int main()
 			}
 		}else{
 			while(1){
-				fr = f_forward(&wav, out_stream, 1<<8, &br);
+				fr = f_forward(&wav, out_stream, 1<<2, &br);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
