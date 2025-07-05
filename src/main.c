@@ -16,7 +16,7 @@
 #include "f_util.h"
 #include "ff.h"
 
-#define CPU_FREQ 200000000
+#define CPU_FREQ 250000000
 
 typedef struct {
 	char riff[4];        // "RIFF"
@@ -60,11 +60,6 @@ int main()
 	fr = f_open(&wav, "sound.wav", FA_READ);
     if (FR_OK != fr && FR_EXIST != fr) {
         panic("f_open(sound.wav) error: %s (%d)\n", FRESULT_str(fr), fr);
-	}
-	FIL log;
-	fr = f_open(&log, "log.txt", FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        panic("f_open(log.txt) error: %s (%d)\n", FRESULT_str(fr), fr);
 	}
 
 	//読み出し
@@ -151,10 +146,6 @@ int main()
 
     // Close the file
 	fr = f_close(&wav);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-    }
-	fr = f_close(&log);
     if (FR_OK != fr) {
         printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
     }
