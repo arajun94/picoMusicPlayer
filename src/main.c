@@ -19,12 +19,18 @@
 
 #define CPU_FREQ 200000000
 
+#define DMA_BUF_SIZE 1024  // 512 frames (16bit stereo)
+uint32_t dma_buf[DMA_BUF_SIZE];
+
+static PIO pio = pio0;
+static uint sm = 0;
+static int dma_chan;
+
 typedef struct {
 	char riff[4];        // "RIFF"
 	uint32_t size;      // ファイルサイズ - 8
 	char data[4];       // "WAVE"
 } Riff;
-Riff* riff;
 
 typedef struct {
 	uint16_t wFormatTag;          // フォーマットタグ (1: PCM)
@@ -67,9 +73,10 @@ int main()
 	//読み出し
 	uint32_t buffer[256];
 	int16_t* play_buffer;
-	play_buffer = (int16_t*)calloc(1<<17, sizeof(int16_t));
+	play_buffer = (int16_t*)calloc(1<<10, sizeof(int16_t));
 	uint32_t i,j;
 
+	Riff* riff;
 	riff = (Riff*)malloc(sizeof(Riff));
 	fread(riff, 12, 1, wav);
 	printf("size:%d\n", riff->size);
@@ -111,8 +118,11 @@ int main()
 			break;
 		}
 	}
-
-
+    // DMA設定
+    dma_chan = dma_claim_unused_channel(true);
+    dma_channel_config dcfg = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&dcfg, DMA_SIZE_32);
+    channel_config_set_dreq(&dcfg, DREQ_PIO0_TX0);
 
 	for(;;){
 		fread(buffer, 4, 2, wav);
@@ -120,11 +130,19 @@ int main()
 			fread(buffer, buffer[1], 1, wav);
 		}else{
 			while(1){
-				fread(play_buffer, 2, 1<<16, wav);
-
-				for(i=0; i<1<<16; i++){
-					i2s_write(play_buffer[i]<<16);
+				fread(play_buffer, 2, 1<<10, wav);
+				dma_channel_wait_for_finish_blocking(dma_chan);
+				for(i=0; i<(1<<10); i++){
+					dma_buf[i] = (int32_t)play_buffer[i]<<16;
 				}
+				dma_channel_configure(
+					dma_chan,
+					&dcfg,
+					&pio->txf[sm],
+					dma_buf,
+					1<<10,
+					true
+				);
 			}
 			break;
 		}
