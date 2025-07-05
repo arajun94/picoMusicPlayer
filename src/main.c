@@ -14,16 +14,23 @@
 
 #include "hw_config.h"
 #include "f_util.h"
+#include "file_stream.h"
 #include "ff.h"
 
 #define CPU_FREQ 250000000
+
+#define PLAY_BUF_SIZE 512
+uint32_t dma_buf[PLAY_BUF_SIZE];
+
+static PIO pio = pio0;
+static uint sm = 0;
+static int dma_chan;
 
 typedef struct {
 	char riff[4];        // "RIFF"
 	uint32_t size;      // ファイルサイズ - 8
 	char data[4];       // "WAVE"
 } Riff;
-Riff* riff;
 
 typedef struct {
 	uint16_t wFormatTag;          // フォーマットタグ (1: PCM)
@@ -55,43 +62,41 @@ int main()
         panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
     }
 
-    // ファイルオープン
-    FIL wav;
-	fr = f_open(&wav, "sound.wav", FA_READ);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        panic("f_open(sound.wav) error: %s (%d)\n", FRESULT_str(fr), fr);
+	FILE *wav = open_file_stream("sound.wav", "r");
+	if (!wav) {
+		panic("Failed to open file: %s\n", "sound.wav");
 	}
+	static char vbuf[2048] __attribute__((aligned));
+    int err = setvbuf(wav, vbuf, _IOFBF, sizeof vbuf);
+
 
 	//読み出し
-	uint8_t buffer[256];
+	uint32_t buffer[256];
 	int16_t* play_buffer;
-	play_buffer = (int16_t*)calloc(1<<16, sizeof(int16_t));
-	uint br;
+	play_buffer = (int16_t*)calloc(PLAY_BUF_SIZE, sizeof(int16_t));
 	uint32_t i,j;
-	fr = f_read(&wav, buffer, 12, &br);
-	printf("f_read: %s\n", FRESULT_str(fr));
-	printf("%d bytes are readed.\n", br);
-	
+
+	Riff* riff;
 	riff = (Riff*)malloc(sizeof(Riff));
-	riff = (Riff*)buffer;
+	fread(riff, 12, 1, wav);
 	printf("size:%d\n", riff->size);
 	printf("\n");
 
 	for(;;){
-		fr = f_read(&wav, buffer, 8, &br);
+		fread(buffer, 4, 2, wav);
 		if(FR_OK != fr) {
 			panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 		}
 		if(memcmp(buffer, "fmt ", 4)!=0){
-			f_read(&wav, buffer, *(uint32_t*)(buffer+4) , &br);
+			fread(buffer, buffer[1], 1, wav);
 			if(FR_OK != fr) {
 				panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 			}
 		}else{
-			WaveFormat* waveformat;
-			waveformat = (WaveFormat*)malloc(sizeof(WaveFormat));
-			if(*(uint32_t*)(buffer+4) >= 16){
-				f_read(&wav, waveformat, 16, &br);
+			if(buffer[1] >= 16){
+				WaveFormat* waveformat;
+				waveformat = (WaveFormat*)malloc(sizeof(WaveFormat));
+				fread(waveformat, 16, 1, wav);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
@@ -113,30 +118,31 @@ int main()
 			break;
 		}
 	}
+    // DMA設定
+    dma_chan = dma_claim_unused_channel(true);
+    dma_channel_config dcfg = dma_channel_get_default_config(dma_chan);
+    channel_config_set_transfer_data_size(&dcfg, DMA_SIZE_32);
+    channel_config_set_dreq(&dcfg, DREQ_PIO0_TX0);
 
-
-	
 	for(;;){
-		fr = f_read(&wav, buffer, 8, &br);
-		if(FR_OK != fr) {
-			panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
-		}
+		fread(buffer, 4, 2, wav);
 		if(memcmp(buffer, "data", 4)!=0){
-			f_read(&wav, buffer, *(uint32_t*)(buffer+4) , &br);
-			if(FR_OK != fr) {
-				panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
-			}
+			fread(buffer, buffer[1], 1, wav);
 		}else{
-			//for(j=0; j<100; j++){
 			while(1){
-				fr = f_read(&wav, play_buffer, 1<<16, &br);
-				if(FR_OK != fr) {
-					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
+				fread(play_buffer, 2, PLAY_BUF_SIZE, wav);
+				dma_channel_wait_for_finish_blocking(dma_chan);
+				for(i=0; i<PLAY_BUF_SIZE; i++){
+					dma_buf[i] = (int32_t)play_buffer[i]<<16;
 				}
-				if(br == 0) break; // EOF
-				for(i=0; i<br/2; i++){
-					i2s_write(play_buffer[i]<<16);
-				}
+				dma_channel_configure(
+					dma_chan,
+					&dcfg,
+					&pio->txf[sm],
+					dma_buf,
+					PLAY_BUF_SIZE,
+					true
+				);
 			}
 			break;
 		}
@@ -145,10 +151,7 @@ int main()
 	free(play_buffer);
 
     // Close the file
-	fr = f_close(&wav);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-    }
+	fclose(wav);
 
     // Unmount the SD card
     f_unmount("");
