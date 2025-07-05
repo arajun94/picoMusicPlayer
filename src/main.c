@@ -19,8 +19,8 @@
 
 #define CPU_FREQ 200000000
 
-#define DMA_BUF_SIZE 1024  // 512 frames (16bit stereo)
-uint32_t dma_buf[DMA_BUF_SIZE];
+#define PLAY_BUF_SIZE 512
+uint32_t dma_buf[PLAY_BUF_SIZE];
 
 static PIO pio = pio0;
 static uint sm = 0;
@@ -73,7 +73,7 @@ int main()
 	//読み出し
 	uint32_t buffer[256];
 	int16_t* play_buffer;
-	play_buffer = (int16_t*)calloc(1<<10, sizeof(int16_t));
+	play_buffer = (int16_t*)calloc(PLAY_BUF_SIZE, sizeof(int16_t));
 	uint32_t i,j;
 
 	Riff* riff;
@@ -130,9 +130,9 @@ int main()
 			fread(buffer, buffer[1], 1, wav);
 		}else{
 			while(1){
-				fread(play_buffer, 2, 1<<10, wav);
+				fread(play_buffer, 2, PLAY_BUF_SIZE, wav);
 				dma_channel_wait_for_finish_blocking(dma_chan);
-				for(i=0; i<(1<<10); i++){
+				for(i=0; i<PLAY_BUF_SIZE; i++){
 					dma_buf[i] = (int32_t)play_buffer[i]<<16;
 				}
 				dma_channel_configure(
@@ -140,7 +140,7 @@ int main()
 					&dcfg,
 					&pio->txf[sm],
 					dma_buf,
-					1<<10,
+					PLAY_BUF_SIZE,
 					true
 				);
 			}
@@ -151,7 +151,7 @@ int main()
 	free(play_buffer);
 
     // Close the file
-	fr = fclose(wav);
+	fclose(wav);
 
     // Unmount the SD card
     f_unmount("");
