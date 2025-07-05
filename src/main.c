@@ -45,7 +45,7 @@ UINT out_stream (   /* 戻り値: 転送されたバイト数またはストリ�
 		return i2s_ready();
 	}
 	do {
-		i2s_write(*(int16_t*)(p+2*cnt) << 16);
+		i2s_write(*(int16_t*)(p+cnt) << 16);
 		cnt+=2;
 	}while(i2s_ready() && cnt < btf);
     return cnt;
@@ -151,16 +151,11 @@ int main()
 				panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 			}
 		}else{
-			//for(j=0; j<100; j++){
 			while(1){
-				fr = f_forward(&wav, out_stream, 1<<16, &br);
+				fr = f_forward(&wav, out_stream, 1<<8, &br);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
-				/*if(br == 0) break; // EOF
-				for(i=0; i<br/2; i++){
-					i2s_write(play_buffer[i]<<16);
-				}*/
 			}
 			break;
 		}
