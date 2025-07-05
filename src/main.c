@@ -165,6 +165,7 @@ int main()
 		}else{
 			while(1){
 				fr = f_forward(&wav, out_stream, 1<<8, &br);
+				dma_channel_wait_for_finish_blocking(dma_chan);
 				if(FR_OK != fr) {
 					panic("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
 				}
@@ -178,7 +179,6 @@ int main()
 					br/2,
 					true
 				);
-				dma_channel_wait_for_finish_blocking(dma_chan);
 			}
 			break;
 		}
