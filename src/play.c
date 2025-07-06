@@ -34,8 +34,7 @@ static FILE *play_file;
 
 void dma_handler() {
     dma_hw->ints0 = 1u << dma_chan;
-    uint16_t i;
-    dma_buf = play_buffer;
+    memmove(dma_buf, play_buffer, PLAY_BUF_SIZE*sizeof(int32_t));
     dma_channel_configure(
         dma_chan, &dcfg,
         &I2S_PIO->txf[I2S_SM],
@@ -43,18 +42,7 @@ void dma_handler() {
         PLAY_BUF_SIZE,
         true
     );
-    play_buffer = wav_read(play_file);
-    /*if(fread(play_buffer, 2, PLAY_BUF_SIZE, play_file) != PLAY_BUF_SIZE){
-        // EOFに達した場合、DMAを停止
-        dma_channel_abort(dma_chan);
-        dma_channel_set_irq0_enabled(dma_chan, false);
-        irq_set_enabled(DMA_IRQ_0, false);
-        fclose(play_file);
-        free(play_buffer);
-        free(riff);
-        free(waveformat);
-        puts("Playback finished.");
-    }*/
+    play_buffer = wav_read(play_file);//ここの途中で次の割り込みが発火する
 }
 
 
@@ -63,7 +51,7 @@ void play (char* path){
 
     //メモリ確保
     play_buffer = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
-    //dma_buf = (uint32_t*)malloc(PLAY_BUF_SIZE*sizeof(uint32_t));
+    dma_buf = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
 
 
     // ファイルを開く
