@@ -10,19 +10,16 @@
 #include "pico/stdlib.h"
 
 #include "i2s.h"
+#include "i2s_config.h"
 
 #include "hw_config.h"
 #include "f_util.h"
 #include "file_stream.h"
 #include "ff.h"
 
-#define CPU_FREQ 200000000
-
 #define PLAY_BUF_SIZE 512
-uint32_t dma_buf[PLAY_BUF_SIZE];
+static uint32_t dma_buf[PLAY_BUF_SIZE];
 
-static PIO pio = pio0;
-static uint sm = 0;
 static int dma_chan;
 
 typedef struct {
@@ -106,7 +103,7 @@ void play (char* path){
         dma_channel_configure(
             dma_chan,
             &dcfg,
-            &pio->txf[sm],
+            &I2S_PIO->txf[I2S_SM],
             dma_buf,
             PLAY_BUF_SIZE,
             true
