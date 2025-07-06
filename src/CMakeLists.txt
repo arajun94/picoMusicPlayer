@@ -2,6 +2,7 @@ add_executable(main
     main.c
     hw_config.c
     play.c
+    wav.c
 )
 target_link_libraries(main 
     pico_stdlib

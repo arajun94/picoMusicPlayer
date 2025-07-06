@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 set(PICO_SDK_PATH /home/arajun/dev/pico-sdk)
 
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico CACHE STRING "Board type")
 
 set(OPTIMIZATION_FLAG "-O3")
 

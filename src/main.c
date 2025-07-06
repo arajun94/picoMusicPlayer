@@ -6,7 +6,6 @@
 
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
-#include "hardware/pio.h"
 #include "pico/stdlib.h"
 
 #include "i2s.h"
@@ -26,10 +25,11 @@ int main()
 
 	i2s_init();
 
+    
 	//スタートボタンが押されるまで待機
-	gpio_init(15);
-    gpio_set_dir(15, GPIO_IN);
-    while (!gpio_get(15));
+	gpio_init(29);
+    gpio_set_dir(29, GPIO_IN);
+    while (!gpio_get(29));
 
 	printf("start\n");
 
