@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include "hardware/clocks.h"
-#include "hardware/timer.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
 #include "pico/stdlib.h"
@@ -41,6 +40,10 @@ int main()
     }
 
 	play("sound.wav");
+
+    while(1){
+        tight_loop_contents();
+    }
 
     // Unmount the SD card
     f_unmount("");
