@@ -24,7 +24,7 @@
 #include "ff.h"
 
 
-static uint32_t* dma_buf;
+static int32_t* dma_buf;
 static int dma_chan;
 static dma_channel_config dcfg;
 

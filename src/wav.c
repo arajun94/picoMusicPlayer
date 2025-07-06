@@ -59,28 +59,28 @@ void wav_init(FILE* play_file) {
         fseek(play_file, buffer[1], SEEK_CUR);
     }
 
-    fread(play_buffer, 2, PLAY_BUF_SIZE, play_file);
+    fread(play_buffer, 1, PLAY_BUF_SIZE*2, play_file);
     for(i=0; i<PLAY_BUF_SIZE; i++){
-        play_buffer32[i] = play_buffer[i+1]<<16 | play_buffer[i]<<24;
+        play_buffer32[i] = *(int16_t*)(play_buffer+i*2) << 16;
     }
 }
 
 int32_t* wav_read(FILE* play_file){
     uint32_t i;
     if(waveformat->wBitsPerSample==16){
-        fread(play_buffer, 2, PLAY_BUF_SIZE, play_file);
+        fread(play_buffer, 1, PLAY_BUF_SIZE*2, play_file);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = play_buffer[i+1]<<16 | play_buffer[i]<<24;
+            play_buffer32[i] = *(int16_t*)(play_buffer+i*2) << 16;
         }
     }else if(waveformat->wBitsPerSample==24){
         fread(play_buffer, 3, PLAY_BUF_SIZE, play_file);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = play_buffer[i+2]<<8 | play_buffer[i+1]<<16 | play_buffer[i]<<24;
+            play_buffer32[i] = play_buffer[i*3+2]<<8 | play_buffer[i*3+1]<<16 | play_buffer[i*3]<<24;
         }
     }else if(waveformat->wBitsPerSample==32){
         fread(play_buffer, 4, PLAY_BUF_SIZE, play_file);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = play_buffer[i+3] | play_buffer[i+2]<<8 | play_buffer[i+1]<<16 | play_buffer[i]<<24;
+            play_buffer32[i] = play_buffer[i*4+3] | play_buffer[i*4+2]<<8 | play_buffer[i*4+1]<<16 | play_buffer[i*4]<<24;
         }
     }
     return play_buffer32;
