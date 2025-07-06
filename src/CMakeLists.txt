@@ -9,6 +9,8 @@ target_link_libraries(main
     hardware_gpio
     hardware_timer
     hardware_clocks
+    hardware_dma
+    hardware_irq
     i2s
     no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
 )
