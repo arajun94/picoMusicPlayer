@@ -50,7 +50,7 @@ void play (char* path){
 	uint32_t i,j;
 
     //メモリ確保
-    play_buffer = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
+    //play_buffer = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
     dma_buf = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
 
 
@@ -75,6 +75,8 @@ void play (char* path){
     irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
     irq_set_enabled(DMA_IRQ_0, true);
     dma_channel_set_irq0_enabled(dma_chan, true);
+
+    play_buffer = wav_read(play_file);
 
     dma_handler();
 }

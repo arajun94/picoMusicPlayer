@@ -58,11 +58,6 @@ void wav_init(FILE* play_file) {
     while(fread(buffer, 4, 2, play_file)==2 && memcmp(buffer, "data", 4)!=0){
         fseek(play_file, buffer[1], SEEK_CUR);
     }
-
-    fread(play_buffer, 1, PLAY_BUF_SIZE*2, play_file);
-    for(i=0; i<PLAY_BUF_SIZE; i++){
-        play_buffer32[i] = *(int16_t*)(play_buffer+i*2) << 16;
-    }
 }
 
 int32_t* wav_read(FILE* play_file){

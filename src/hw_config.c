@@ -41,7 +41,7 @@ static sd_sdio_if_t sdio_if = {
     */
     .CMD_gpio = 27,
     .D0_gpio = 1,
-    .baud_rate = 125 * 1000 * 1000 / 6,  // 20833333 Hz
+    .baud_rate = 25 * 1000 * 1000,  // 20833333 Hz
     .DMA_IRQ_num = DMA_IRQ_1,
     .SDIO_PIO = pio1
 };
