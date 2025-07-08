@@ -56,7 +56,7 @@ void wav_init(FIL* play_file) {
     }else{
         panic("unsupported wave format.\n");
     }
-    if(waveformat->nChannels==1){//モノラル
+    if(waveformat->nChannels>2){//2chより多い
         panic("unsupported wave format.\n");
     }
     if(waveformat->wBitsPerSample%8!=0 || waveformat->wBitsPerSample>32){//32bitより大きい、バイト単位でない
@@ -78,10 +78,18 @@ int32_t* wav_read(FIL* play_file){
     play_buffer32_index^=1;
     uint8_t sampleBytes = waveformat->wBitsPerSample/8;
 
-    f_read(play_file, play_buffer, PLAY_BUF_SIZE*sampleBytes, &br);
-    for(i=0; i<PLAY_BUF_SIZE; i++){
-        memcpy(&play_buffer32[play_buffer32_index][i], play_buffer+i*sampleBytes, 2);
-        play_buffer32[play_buffer32_index][i] = play_buffer32[play_buffer32_index][i] << 16;
+    if(waveformat->nChannels==2){
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE*sampleBytes, &br);
+        for(i=0; i<PLAY_BUF_SIZE; i++){
+            memcpy(&play_buffer32[play_buffer32_index][i], play_buffer+i*sampleBytes, sampleBytes);
+            play_buffer32[play_buffer32_index][i] = play_buffer32[play_buffer32_index][i] << 16;
+        }
+    }else{
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE*sampleBytes/2, &br);
+        for(i=0; i<PLAY_BUF_SIZE; i++){
+            memcpy(&play_buffer32[play_buffer32_index][i], play_buffer+i*sampleBytes/2, sampleBytes);
+            play_buffer32[play_buffer32_index][i] = play_buffer32[play_buffer32_index][i] << 16;
+        }
     }
     return play_buffer32[play_buffer32_index];
 }
