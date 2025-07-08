@@ -54,9 +54,17 @@ void wav_init(FIL* play_file) {
             f_lseek(play_file, f_tell(play_file)-16);
         }
     }else{
-        panic("unsupported wave format size: %d\n", buffer[1]);
+        panic("unsupported wave format.\n");
     }
-
+    if(waveformat->nChannels==1){//モノラル
+        panic("unsupported wave format.\n");
+    }
+    if(waveformat->wBitsPerSample%8!=0 || waveformat->wBitsPerSample>32){//32bitより大きい、バイト単位でない
+        panic("unsupported wave format.\n");
+    }
+    if(waveformat->wFormatTag!=1){//PCMでない
+        panic("unsupported wave format.\n");
+    }
 
     //dataチャンクまで飛ばす
     while(f_read(play_file, buffer, 8, &br)==FR_OK && br == 8 && memcmp(buffer, "data", 4)!=0){
@@ -66,28 +74,14 @@ void wav_init(FIL* play_file) {
 
 int32_t* wav_read(FIL* play_file){
     UINT br;
-    uint8_t i;
+    uint16_t i, j;
     play_buffer32_index^=1;
-    if(waveformat->wBitsPerSample==8){
-        f_read(play_file, play_buffer, PLAY_BUF_SIZE , &br);
-        for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[play_buffer32_index][i] = play_buffer[i]<<24;
-        }
-    }else if(waveformat->wBitsPerSample==16){
-        f_read(play_file, play_buffer, PLAY_BUF_SIZE*2 , &br);
-        for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[play_buffer32_index][i] = play_buffer[i*2]<<16 | play_buffer[i*2+1]<<24;
-        }
-    }else if(waveformat->wBitsPerSample==24){
-        f_read(play_file, play_buffer, PLAY_BUF_SIZE*3 , &br);
-        for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[play_buffer32_index][i] = play_buffer[i*3]<<8 | play_buffer[i*3+1]<<16 | play_buffer[i*3+2]<<24;
-        }
-    }else if(waveformat->wBitsPerSample==32){
-        f_read(play_file, play_buffer, PLAY_BUF_SIZE*4 , &br);
-        for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[play_buffer32_index][i] = play_buffer[i*4] | play_buffer[i*4+1]<<8 | play_buffer[i*4+2]<<16 | play_buffer[i*3]<<24;
-        }
+    uint8_t sampleBytes = waveformat->wBitsPerSample/8;
+
+    f_read(play_file, play_buffer, PLAY_BUF_SIZE*sampleBytes, &br);
+    for(i=0; i<PLAY_BUF_SIZE; i++){
+        memcpy(&play_buffer32[play_buffer32_index][i], play_buffer+i*sampleBytes, 2);
+        play_buffer32[play_buffer32_index][i] = play_buffer32[play_buffer32_index][i] << 16;
     }
     return play_buffer32[play_buffer32_index];
 }
