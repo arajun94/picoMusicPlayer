@@ -2,9 +2,10 @@
 #define WAV_H
 #include <stdint.h>
 #include <stdio.h>
+#include "ff.h"
 
-void wav_init(FILE*);
-int32_t* wav_read(FILE*);
+void wav_init(FIL*);
+int32_t* wav_read(FIL*);
 
 typedef struct {
 	char riff[4];        // "RIFF"

@@ -29,25 +29,27 @@ static int dma_chan;
 static dma_channel_config dcfg;
 
 static int32_t* play_buffer;
-static FILE *play_file;
+static FIL play_file;
 
 
 void dma_handler() {
     dma_hw->ints0 = 1u << dma_chan;
-    memmove(dma_buf, play_buffer, PLAY_BUF_SIZE*sizeof(int32_t));
+    dma_buf = play_buffer;
     dma_channel_configure(
-        dma_chan, &dcfg,
+        dma_chan,
+        &dcfg,
         &I2S_PIO->txf[I2S_SM],
         dma_buf,
         PLAY_BUF_SIZE,
         true
     );
-    play_buffer = wav_read(play_file);//ここの途中で次の割り込みが発火する
+    play_buffer = wav_read(&play_file);//ここの途中で次の割り込みが発火する
 }
 
 
 void play (char* path){
 	uint32_t i,j;
+    FRESULT fr;
 
     //メモリ確保
     //play_buffer = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
@@ -55,16 +57,13 @@ void play (char* path){
 
 
     // ファイルを開く
-    play_file = open_file_stream(path, "r");
-	if (!play_file) {
-		panic("Failed to open play_file: %s\n", path);
+    fr = f_open(&play_file, path, FA_READ);
+	if (fr!=FR_OK) {
+        printf("%s\n", FRESULT_str(fr));
+		panic("Failed to open &play_file: %s\n", path);
 	}
-    
-    //stdバッファリング
-    static char vbuf[2048] __attribute__((aligned));
-    int err = setvbuf(play_file, vbuf, _IOFBF, sizeof vbuf);
 
-    wav_init(play_file);
+    wav_init(&play_file);
     
     // DMA設定
     dma_chan = dma_claim_unused_channel(true);
@@ -76,7 +75,7 @@ void play (char* path){
     irq_set_enabled(DMA_IRQ_0, true);
     dma_channel_set_irq0_enabled(dma_chan, true);
 
-    play_buffer = wav_read(play_file);
+    play_buffer = wav_read(&play_file);
 
     dma_handler();
 }

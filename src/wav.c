@@ -21,33 +21,37 @@
 #include "ff.h"
 
 static uint8_t* play_buffer;
-static int32_t* play_buffer32;
+static int32_t** play_buffer32;
 static Riff* riff;
 static WaveFormat* waveformat;
+static uint8_t play_buffer32_index = 0;
 
-void wav_init(FILE* play_file) {
+void wav_init(FIL* play_file) {
     uint32_t buffer[256];
     uint32_t i;
+    UINT br;
         //メモリ確保
-    play_buffer = (uint8_t*)malloc(PLAY_BUF_SIZE*sizeof(uint8_t));
-    play_buffer32 = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
+    play_buffer = (uint8_t*)malloc(PLAY_BUF_SIZE*sizeof(uint8_t)*4);
+    play_buffer32 = (int32_t**)malloc(2*sizeof(int32_t*));
+    play_buffer32[0] = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
+    play_buffer32[1] = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
 	riff = (Riff*)malloc(sizeof(Riff));
 
     // RIFFチャンクの読み込み
-	fread(riff, 12, 1, play_file);
+	f_read(play_file, riff, 12, &br);
 
 
     //fmtチャンクまで飛ばす
-    while(fread(buffer, 4, 2, play_file)==2 && memcmp(buffer, "fmt ", 4)!=0){
-        fseek(play_file, buffer[1], SEEK_CUR);
+    while(f_read(play_file, buffer, 8, &br)==FR_OK && memcmp(buffer, "fmt ", 4)!=0){
+        f_lseek(play_file, f_tell(play_file)+buffer[1]);
     }
 
     //fmtチャンクの読み込み
     if(buffer[1] >= 16){
         waveformat = (WaveFormat*)malloc(sizeof(WaveFormat));
-        fread(waveformat, 16, 1, play_file);
+        f_read(play_file, waveformat, 16, &br);
         if(buffer[1]>16){//fmtチャンクのサイズが16より大きい場合飛ばす
-            fseek(play_file, buffer[1]-16, SEEK_CUR);
+            f_lseek(play_file, f_tell(play_file)-16);
         }
     }else{
         panic("unsupported wave format size: %d\n", buffer[1]);
@@ -55,28 +59,35 @@ void wav_init(FILE* play_file) {
 
 
     //dataチャンクまで飛ばす
-    while(fread(buffer, 4, 2, play_file)==2 && memcmp(buffer, "data", 4)!=0){
-        fseek(play_file, buffer[1], SEEK_CUR);
+    while(f_read(play_file, buffer, 8, &br)==FR_OK && br == 8 && memcmp(buffer, "data", 4)!=0){
+        f_lseek(play_file, f_tell(play_file)+buffer[1]);
     }
 }
 
-int32_t* wav_read(FILE* play_file){
-    uint32_t i;
-    if(waveformat->wBitsPerSample==16){
-        fread(play_buffer, 1, PLAY_BUF_SIZE*2, play_file);
+int32_t* wav_read(FIL* play_file){
+    UINT br;
+    uint8_t i;
+    play_buffer32_index^=1;
+    if(waveformat->wBitsPerSample==8){
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE , &br);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = *(int16_t*)(play_buffer+i*2) << 16;
+            play_buffer32[play_buffer32_index][i] = play_buffer[i]<<24;
+        }
+    }else if(waveformat->wBitsPerSample==16){
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE*2 , &br);
+        for(i=0; i<PLAY_BUF_SIZE; i++){
+            play_buffer32[play_buffer32_index][i] = play_buffer[i*2]<<16 | play_buffer[i*2+1]<<24;
         }
     }else if(waveformat->wBitsPerSample==24){
-        fread(play_buffer, 3, PLAY_BUF_SIZE, play_file);
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE*3 , &br);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = play_buffer[i*3+2]<<8 | play_buffer[i*3+1]<<16 | play_buffer[i*3]<<24;
+            play_buffer32[play_buffer32_index][i] = play_buffer[i*3]<<8 | play_buffer[i*3+1]<<16 | play_buffer[i*3+2]<<24;
         }
     }else if(waveformat->wBitsPerSample==32){
-        fread(play_buffer, 4, PLAY_BUF_SIZE, play_file);
+        f_read(play_file, play_buffer, PLAY_BUF_SIZE*4 , &br);
         for(i=0; i<PLAY_BUF_SIZE; i++){
-            play_buffer32[i] = play_buffer[i*4+3] | play_buffer[i*4+2]<<8 | play_buffer[i*4+1]<<16 | play_buffer[i*4]<<24;
+            play_buffer32[play_buffer32_index][i] = play_buffer[i*4] | play_buffer[i*4+1]<<8 | play_buffer[i*4+2]<<16 | play_buffer[i*3]<<24;
         }
     }
-    return play_buffer32;
+    return play_buffer32[play_buffer32_index];
 }
