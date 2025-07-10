@@ -43,18 +43,13 @@ void dma_handler() {
         PLAY_BUF_SIZE,
         true
     );
-    play_buffer = wav_read(&play_file);//ここの途中で次の割り込みが発火する
+    play_buffer = wav_read(&play_file);
 }
 
 
 void play (char* path){
 	uint32_t i,j;
     FRESULT fr;
-
-    //メモリ確保
-    //play_buffer = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
-    dma_buf = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
-
 
     // ファイルを開く
     fr = f_open(&play_file, path, FA_READ);
