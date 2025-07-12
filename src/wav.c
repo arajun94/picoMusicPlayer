@@ -27,11 +27,12 @@ static int32_t** playBuffer32;
 static WaveFormat* waveformat;
 static uint8_t playBuffer32_index = 0;
 
-void wav_init(FIL* play_file) {
+Metadata wav_init(FIL* play_file) {
     uint32_t buffer[256];
     uint32_t i;
     UINT br;
-        //メモリ確保
+    
+    //メモリ確保
     playBuffer = (uint8_t*)malloc(PLAY_BUF_SIZE*sizeof(uint8_t)*4);
     playBuffer32 = (int32_t**)malloc(2*sizeof(int32_t*));
     playBuffer32[0] = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
@@ -78,16 +79,16 @@ void wav_init(FIL* play_file) {
     };
 }
 
-int32_t* wav_read(FIL* play_file){
+int32_t* wav_read(FIL* play_file, Metadata metadata){
     UINT br;
     uint16_t i;
-    uint8_t sampleBytes = waveformat->wBitsPerSample/8;
+    uint8_t sampleBytes = metadata.bitDeps/8;
     playBuffer32_index^=1;
 
-    f_read(play_file, playBuffer, PLAY_BUF_SIZE * sampleBytes * waveformat->nChannels / 2, &br);
+    f_read(play_file, playBuffer, PLAY_BUF_SIZE * sampleBytes, &br);
     for(i=0; i<PLAY_BUF_SIZE; i++){
-        memcpy(&playBuffer32[playBuffer32_index][i], playBuffer + i * sampleBytes * waveformat->nChannels / 2, sampleBytes);
-        playBuffer32[playBuffer32_index][i] = playBuffer32[playBuffer32_index][i] << (I2S_BITS - waveformat->wBitsPerSample);
+        memcpy(&playBuffer32[playBuffer32_index][i], playBuffer + i * sampleBytes, sampleBytes);
+        playBuffer32[playBuffer32_index][i] = playBuffer32[playBuffer32_index][i] << (I2S_BITS - metadata.bitDeps) >> (I2S_BITS - metadata.bitDeps);
     }
     return playBuffer32[playBuffer32_index];
 }

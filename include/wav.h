@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "ff.h"
+#include "play.h"
 
-void wav_init(FIL*);
-int32_t* wav_read(FIL*);
+Metadata wav_init(FIL*);
+int32_t* wav_read(FIL*, Metadata);
 
 typedef struct {
 	char riff[4];        // "RIFF"
