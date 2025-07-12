@@ -8,8 +8,6 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
-#include "i2s.h"
-
 #include "hw_config.h"
 #include "f_util.h"
 #include "file_stream.h"
@@ -22,8 +20,6 @@ int main()
 {
 	stdio_init_all();
 	set_sys_clock_khz(CPU_FREQ / 1000, true);
-
-	i2s_init();
 
     
 	//スタートボタンが押されるまで待機

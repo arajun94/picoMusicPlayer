@@ -31,6 +31,9 @@ static dma_channel_config dcfg;
 static int32_t* play_buffer;
 static FIL play_file;
 
+static I2S i2s;
+
+static Metadata metadata;
 
 void dma_handler() {
     dma_hw->ints0 = 1u << dma_chan;
@@ -38,12 +41,12 @@ void dma_handler() {
     dma_channel_configure(
         dma_chan,
         &dcfg,
-        &I2S_PIO->txf[I2S_SM],
+        &(i2s.pio)->txf[i2s.sm],
         dma_buf,
         PLAY_BUF_SIZE,
         true
     );
-    play_buffer = wav_read(&play_file);
+    play_buffer = wav_read(&play_file, &metadata);
 }
 
 
@@ -58,7 +61,9 @@ void play (char* path){
 		panic("Failed to open &play_file: %s\n", path);
 	}
 
-    wav_init(&play_file);
+    metadata = wav_init(&play_file);
+
+    i2s = i2s_init(metadata.bitDeps, metadata.samplingRrate, metadata.channels);
     
     // DMA設定
     dma_chan = dma_claim_unused_channel(true);
@@ -70,7 +75,7 @@ void play (char* path){
     irq_set_enabled(DMA_IRQ_0, true);
     dma_channel_set_irq0_enabled(dma_chan, true);
 
-    play_buffer = wav_read(&play_file);
+    play_buffer = wav_read(&play_file, &metadata);
 
     dma_handler();
 }
