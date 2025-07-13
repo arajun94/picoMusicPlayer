@@ -21,13 +21,21 @@ int main()
 	stdio_init_all();
 	set_sys_clock_khz(CPU_FREQ / 1000, true);
 
-    
-	//スタートボタンが押されるまで待機
-	gpio_init(29);
-    gpio_set_dir(29, GPIO_IN);
-    while (!gpio_get(29));
+    gpio_init(2);
+    gpio_set_dir(2, GPIO_OUT);
+    gpio_put(2, 1);
 
-	printf("start\n");
+    
+    gpio_init(16);
+    gpio_init(17);
+    gpio_init(18);
+
+    //スタートボタンが押されるまで待機
+    gpio_set_dir(16, GPIO_IN);
+    gpio_set_dir(17, GPIO_IN);
+    gpio_set_dir(18, GPIO_IN);
+    while (!gpio_get(17));
+    while(gpio_get(17));
 
     FATFS fs;
     FRESULT fr = f_mount(&fs, "", 1);
@@ -38,7 +46,15 @@ int main()
 	play("sound.wav");
 
     while(1){
-        tight_loop_contents();
+        if(gpio_get(17)){
+            if(isPlaying())stop();
+            else start();
+            printf("isPlaying:%d\n",isPlaying());
+            while(gpio_get(17));
+        }
+        if(isEnded()){
+            restart();
+        }
     }
 
     // Unmount the SD card

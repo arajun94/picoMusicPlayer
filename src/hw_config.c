@@ -32,15 +32,15 @@ static sd_sdio_if_t sdio_if = {
     Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
     The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
         CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
-        As of this writing, SDIO_CLK_PIN_D0_OFFSET is 25,
-            which is +25 in mod32 arithmetic, so:
-        CLK_gpio = D0_gpio +26.
+        As of this writing, SDIO_CLK_PIN_D0_OFFSET is 4,
+            which is +4 in mod32 arithmetic, so:
+        CLK_gpio = D0_gpio +4.
         D1_gpio = D0_gpio + 1;
         D2_gpio = D0_gpio + 2;
         D3_gpio = D0_gpio + 3;
     */
-    .CMD_gpio = 27,
-    .D0_gpio = 1,
+    .CMD_gpio = 15,
+    .D0_gpio = 10,
     .baud_rate =  10* 1000 * 1000,
     .DMA_IRQ_num = DMA_IRQ_1,
     .SDIO_PIO = pio1

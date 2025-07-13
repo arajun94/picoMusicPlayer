@@ -57,6 +57,9 @@ Metadata wav_init(FIL* play_file) {
     }else{
         panic("unsupported wave format.\n");
     }
+    if(waveformat->wFormatTag!=1){
+        panic("unsupported wave format.\n");
+    }
     if(waveformat->nChannels>2){//2chより多い
         panic("unsupported wave format.\n");
     }
@@ -74,15 +77,18 @@ Metadata wav_init(FIL* play_file) {
     return (Metadata){
         .bitDeps = waveformat->wBitsPerSample,
         .channels = waveformat->nChannels,
-        .samplingRrate = waveformat->nSamplesPerSec
+        .samplingRrate = waveformat->nSamplesPerSec,
+        .samples = buffer[1]/(waveformat->wBitsPerSample/8)//チャンネル倍を含む
     };
 }
 
-int32_t* wav_read(FIL* play_file, Metadata* metadata){
+int32_t* wav_read(FIL* play_file, Metadata* metadata, uint32_t t){
     UINT br;
     uint16_t i;
     uint8_t sampleBytes = metadata->bitDeps/8;
     playBuffer32_index^=1;
+
+    f_lseek(play_file, t*sampleBytes);
 
     f_read(play_file, playBuffer, PLAY_BUF_SIZE * sampleBytes * metadata->channels / 2, &br);
     for(i=0; i<PLAY_BUF_SIZE; i++){

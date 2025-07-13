@@ -24,19 +24,26 @@
 #include "ff.h"
 
 
-static int32_t* dma_buf;
 static int dma_chan;
 static dma_channel_config dcfg;
 
 static int32_t* play_buffer;
 static FIL play_file;
+static int32_t* null_buffer;
 
 static I2S i2s;
 
-static Metadata metadata;
+static struct {
+    uint32_t t;
+    uint8_t playing;
+    uint8_t ended;
+    Metadata metadata;
+} player;
 
 void dma_handler() {
+    static int32_t* dma_buf;
     dma_hw->ints0 = 1u << dma_chan;
+
     dma_buf = play_buffer;
     dma_channel_configure(
         dma_chan,
@@ -46,13 +53,44 @@ void dma_handler() {
         PLAY_BUF_SIZE,
         true
     );
-    play_buffer = wav_read(&play_file, &metadata);
+
+
+    if(player.t>=player.metadata.samples)player.ended = 1;
+
+    if(player.playing && !player.ended){
+        play_buffer = wav_read(&play_file, &player.metadata, player.t);
+        player.t += PLAY_BUF_SIZE;
+    }else{
+        play_buffer = null_buffer;
+    }
 }
 
+void stop (){
+    player.playing = 0;
+}
+
+void start (){
+    player.playing = 1;
+}
+
+void restart(){
+    player.ended = 0;
+    player.t = 0;
+}
+
+uint8_t isPlaying(){
+    return player.playing;
+}
+
+uint8_t isEnded(){
+    return player.ended;
+}
 
 void play (char* path){
 	uint32_t i,j;
     FRESULT fr;
+
+    null_buffer = (int32_t*)calloc(PLAY_BUF_SIZE, sizeof(int32_t));
 
     // ファイルを開く
     fr = f_open(&play_file, path, FA_READ);
@@ -61,9 +99,9 @@ void play (char* path){
 		panic("Failed to open &play_file: %s\n", path);
 	}
 
-    metadata = wav_init(&play_file);
+    player.metadata = wav_init(&play_file);
 
-    i2s = i2s_init(metadata.bitDeps, metadata.samplingRrate, metadata.channels);
+    i2s = i2s_init(player.metadata.bitDeps, player.metadata.samplingRrate, player.metadata.channels);
     
     // DMA設定
     dma_chan = dma_claim_unused_channel(true);
@@ -75,7 +113,7 @@ void play (char* path){
     irq_set_enabled(DMA_IRQ_0, true);
     dma_channel_set_irq0_enabled(dma_chan, true);
 
-    play_buffer = wav_read(&play_file, &metadata);
-
+    player.playing = 1;
+    
     dma_handler();
 }

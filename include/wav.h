@@ -6,7 +6,7 @@
 #include "play.h"
 
 Metadata wav_init(FIL*);
-int32_t* wav_read(FIL*, Metadata*);
+int32_t* wav_read(FIL*, Metadata*, uint32_t);
 
 typedef struct {
 	char riff[4];        // "RIFF"
