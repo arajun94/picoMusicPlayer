@@ -22,6 +22,8 @@
 
 #include "play.h"
 
+#define VOLUME_DOWN 1
+
 static uint8_t* playBuffer;
 static int32_t** playBuffer32;
 static WaveFormat* waveformat;
@@ -93,7 +95,7 @@ int32_t* wav_read(FIL* play_file, Metadata* metadata, uint32_t t){
     f_read(play_file, playBuffer, PLAY_BUF_SIZE * sampleBytes * metadata->channels / 2, &br);
     for(i=0; i<PLAY_BUF_SIZE; i++){
         memcpy(&playBuffer32[playBuffer32_index][i], playBuffer + i * sampleBytes * metadata->channels / 2, sampleBytes);
-        playBuffer32[playBuffer32_index][i] = playBuffer32[playBuffer32_index][i] << (I2S_BITS - waveformat->wBitsPerSample);
+        playBuffer32[playBuffer32_index][i] = playBuffer32[playBuffer32_index][i] << (I2S_BITS - waveformat->wBitsPerSample) >> VOLUME_DOWN;
     }
     return playBuffer32[playBuffer32_index];
 }
