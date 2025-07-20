@@ -19,6 +19,36 @@
 
 #define MAX_FILES 16
 
+
+void quickSort(char **files, uint32_t length){
+    if(length <= 1)return;
+    uint32_t left,right;
+    char* pivot;
+    char* tmp;
+    
+    left = 0;
+    right = length-1;
+    pivot = files[0];
+    
+    while(1){
+        while(left<length && strcmp(files[left],pivot)<=0)left++;
+        while(left<right && strcmp(files[right],pivot)>=0)right--;
+        
+        if(left==right || left==length)break;
+        tmp = files[left];
+        files[left] = files[right];
+        files[right] = tmp;
+    }
+    files[0] = files[left-1];
+    files[left-1] = pivot;
+    
+    quickSort(files, left-1);
+    quickSort(files+left, length-left);
+}
+
+
+
+
 int main()
 {
 	stdio_init_all();
@@ -67,7 +97,7 @@ int main()
     uint16_t filesIndex = 1;
     uint16_t filesNum = i;
 
-    printf("filesNum:%d\n",filesNum);
+    quickSort(files, filesNum);
 
 	play(files[filesIndex]);
 
