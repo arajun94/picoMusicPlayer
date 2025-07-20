@@ -18,7 +18,7 @@
 #include "play.h"
 #include "config.h"
 
-#define MAX_FILES 16
+#define MAX_FILES 128
 
 
 void quickSort(char **files, uint32_t length){
@@ -112,6 +112,7 @@ int main()
 
     quickSort(files, filesNum);
 
+    printf("play_start\n");
 	play(files[filesIndex]);
 
     while(1){
