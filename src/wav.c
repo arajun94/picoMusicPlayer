@@ -22,7 +22,7 @@
 
 #include "play.h"
 
-#define VOLUME_DOWN 1
+#define VOLUME_DOWN 2
 
 static uint8_t* playBuffer;
 static int32_t** playBuffer32;
@@ -38,10 +38,10 @@ Metadata wav_init(FIL* play_file) {
     playBuffer32 = (int32_t**)malloc(2*sizeof(int32_t*));
     playBuffer32[0] = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
     playBuffer32[1] = (int32_t*)malloc(PLAY_BUF_SIZE*sizeof(int32_t));
-	Riff* riff = (Riff*)malloc(sizeof(Riff));
+	Riff riff;
 
     // RIFFチャンクの読み込み
-	f_read(play_file, riff, 12, &br);
+	f_read(play_file, &riff, 12, &br);
 
 
     //fmtチャンクまで飛ばす
@@ -82,6 +82,14 @@ Metadata wav_init(FIL* play_file) {
         .samplingRrate = waveformat->nSamplesPerSec,
         .samples = buffer[1]/(waveformat->wBitsPerSample/8)//チャンネル倍を含む
     };
+}
+
+void wav_clear(){
+    free(playBuffer);
+    free(playBuffer32[0]);
+    free(playBuffer32[1]);
+    free(playBuffer32);
+
 }
 
 int32_t* wav_read(FIL* play_file, Metadata* metadata, uint32_t t){
