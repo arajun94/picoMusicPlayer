@@ -15,7 +15,7 @@ void skip(int32_t);
 
 void play_abort();
 
-uint8_t isPlaying();
+uint8_t isStopped();
 
 uint8_t isEnded();
 

@@ -74,7 +74,7 @@ int main()
     adc_gpio_init(28);                //ADC0(GPIO26)の端子設定
     adc_select_input(2);
 
-    //スタートボタンが押されるまで待機
+    //中央ボタンが押されるまで待機
     while (!gpio_get(17));
     while(gpio_get(17));
 
@@ -103,33 +103,44 @@ int main()
     }
     f_closedir(&dir);
 
-    uint16_t filesIndex = 1;
-    uint16_t filesNum = i;
+    uint16_t filesIndex = 0;
+    uint16_t filesNum = i-1;
     uint8_t tBlink = 0;
     double vsysVoltage;
 
-    quickSort(&files[1], filesNum);
+    files = &files[1];
+
+    quickSort(files, filesNum);
 
 	play(files[filesIndex]);
 
     while(1){
         vsysVoltage = (double)adc_read()*3.3*2/4096;
         if(gpio_get(17)){
-            if(isPlaying())stop();
-            else start();
+            if(isStopped()){
+                start();
+            }else{
+                stop();
+            }
             while(gpio_get(17));
         }
         if(gpio_get(18)){
+            if(filesIndex==0){
+                filesIndex=filesNum-1;
+            }else{
+                filesIndex--;
+            }
             play_abort();
-            filesIndex--;
-            if(filesIndex<1)filesIndex=filesNum-1;
             play(files[filesIndex]);
             while(gpio_get(18));
         }
         if(gpio_get(16)){
+            if(filesIndex>=filesNum-1){
+                filesIndex=0;
+            }else{
+                filesIndex++;
+            }
             play_abort();
-            filesIndex++;
-            if(filesIndex>=filesNum)filesIndex=1;
             play(files[filesIndex]);
             while(gpio_get(16));
         }
@@ -137,9 +148,12 @@ int main()
             skip(10);
         }
         if(isEnded()){
+            if(filesIndex==0){
+                filesIndex=filesNum;
+            }else{
+                filesIndex--;
+            }
             play_abort();
-            filesIndex++;
-            if(filesIndex>=filesNum)filesIndex=1;
             play(files[filesIndex]);
         }
         if(vsysVoltage<3.0){
@@ -150,7 +164,4 @@ int main()
 
     // Unmount the SD card
     f_unmount("");
-
-    puts("Goodbye, world!");
-
 }

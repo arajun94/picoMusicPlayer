@@ -35,7 +35,7 @@ static I2S i2s;
 
 static struct {
     uint32_t t;
-    uint8_t playing;
+    uint8_t stopped;
     uint8_t ended;
     Metadata metadata;
 } player;
@@ -57,7 +57,7 @@ void dma_handler() {
 
     if(player.t>=player.metadata.samples)player.ended = 1;
 
-    if(player.playing && !player.ended){
+    if(!player.stopped && !player.ended){
         play_buffer = wav_read(&play_file, &player.metadata, player.t);
         player.t += PLAY_BUF_SIZE;
     }else{
@@ -70,6 +70,7 @@ void play_abort (){
     irq_set_enabled(DMA_IRQ_0, false);
     player.ended = 0;
     player.t =0;
+    player.stopped = 0;
     i2s_close(&i2s);
     wav_clear();
     if(null_buffer!=NULL){
@@ -79,11 +80,11 @@ void play_abort (){
 }
 
 void stop (){
-    player.playing = 0;
+    player.stopped = 1;
 }
 
 void start (){
-    player.playing = 1;
+    player.stopped = 0;
 }
 
 void restart(){
@@ -92,12 +93,11 @@ void restart(){
 }
 
 void skip(int32_t length){
-    printf("debug\n");
     player.t+=length*player.metadata.samplingRrate*player.metadata.channels;
 }
 
-uint8_t isPlaying(){
-    return player.playing;
+uint8_t isStopped(){
+    return player.stopped;
 }
 
 uint8_t isEnded(){
@@ -130,8 +130,6 @@ void play (char* path){
     irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
     irq_set_enabled(DMA_IRQ_0, true);
     dma_channel_set_irq0_enabled(dma_chan, true);
-
-    player.playing = 1;
     
     dma_handler();
 }
