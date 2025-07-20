@@ -72,7 +72,9 @@ void play_abort (){
     player.t =0;
     i2s_close(&i2s);
     wav_clear();
-    free(null_buffer);
+    if(null_buffer!=NULL){
+        free(null_buffer);
+    }
     f_close(&play_file);
 }
 
@@ -87,6 +89,11 @@ void start (){
 void restart(){
     player.ended = 0;
     player.t = 0;
+}
+
+void skip(int32_t length){
+    printf("debug\n");
+    player.t+=length*player.metadata.samplingRrate*player.metadata.channels;
 }
 
 uint8_t isPlaying(){

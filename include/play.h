@@ -11,6 +11,8 @@ void start();
 
 void restart();
 
+void skip(int32_t);
+
 void play_abort();
 
 uint8_t isPlaying();
