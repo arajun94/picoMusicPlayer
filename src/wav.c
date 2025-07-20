@@ -85,11 +85,18 @@ Metadata wav_init(FIL* play_file) {
 }
 
 void wav_clear(){
-    free(playBuffer);
-    free(playBuffer32[0]);
-    free(playBuffer32[1]);
-    free(playBuffer32);
-
+    if(playBuffer!=NULL){
+        free(playBuffer);
+    }
+    if(playBuffer32[0]!=NULL){
+        free(playBuffer32[0]);
+    }
+    if(playBuffer32[1]!=NULL){
+        free(playBuffer32[1]);    
+    }
+    if(playBuffer32){
+        free(playBuffer32);
+    }
 }
 
 int32_t* wav_read(FIL* play_file, Metadata* metadata, uint32_t t){
