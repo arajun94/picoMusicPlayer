@@ -8,6 +8,8 @@
 Metadata wav_init(FIL*);
 int32_t* wav_read(FIL*, Metadata*, uint32_t);
 
+void wav_clear();
+
 typedef struct {
 	char riff[4];        // "RIFF"
 	uint32_t size;      // ファイルサイズ - 8

@@ -66,12 +66,14 @@ void dma_handler() {
 }
 
 void play_abort (){
-    i2s_close(&i2s);
     dma_channel_set_irq0_enabled(dma_chan, false);
     irq_set_enabled(DMA_IRQ_0, false);
     player.ended = 0;
     player.t =0;
+    i2s_close(&i2s);
+    wav_clear();
     free(null_buffer);
+    f_close(&play_file);
 }
 
 void stop (){
